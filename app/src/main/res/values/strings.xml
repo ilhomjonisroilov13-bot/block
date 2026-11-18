@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">So\'z Qalqoni</string>
+    <string name="service_desc">Qidiruv maydonlariga yozilgan va siz bloklagan so\'z yoki ismlarni aniqlab, ogohlantirish ko\'rsatadi. Barcha ma\'lumot faqat shu telefonda qoladi.</string>
+</resources>
