@@ -207,7 +207,7 @@ class MainActivity : Activity() {
         c.addView(email)
         c.addView(p1)
         c.addView(p2)
-        c.addPasswordToggle(p1, p2)
+        c.passwordToggle(p1, p2)
         c.addView(btn("Hisob yaratish", top = 16) {
             val e = email.text.toString().trim().lowercase()
             val a = p1.text.toString()
