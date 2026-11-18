@@ -34,7 +34,9 @@ class BlockerService : AccessibilityService() {
             "com.microsoft.emmx", "com.brave.browser", "com.duckduckgo.mobile.android",
             "com.yandex.browser", "com.kiwibrowser.browser", "com.vivaldi.browser",
             "com.UCMobile.intl", "mark.via.gp",
-            "com.google.android.googlequicksearchbox", "com.google.android.youtube"
+            "com.google.android.googlequicksearchbox", "com.google.android.youtube",
+            "com.mi.globalbrowser", "com.miui.browser", "com.huawei.browser",
+            "com.android.browser", "ru.yandex.searchplugin"
         )
         private val URL_IDS = listOf("url_bar", "mozac_browser_toolbar_url_view", "url_bar_title")
         private val HINT_WORDS = listOf("search", "qidir", "izla", "поиск", "найти", "query", "omnibox", "url")
@@ -51,6 +53,7 @@ class BlockerService : AccessibilityService() {
 
     private var words: List<String> = emptyList()
     private var strict = false
+    private var consent = false
     private var overlay: View? = null
     private var lastShown = 0L
     private var lastUrlCheck = 0L
@@ -58,7 +61,7 @@ class BlockerService : AccessibilityService() {
 
     // Kuchli havola saqlanishi shart (SharedPreferences uni zaif saqlaydi).
     private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == "words" || key == "strict") reload()
+        if (key == "words" || key == "strict" || key == "consent") reload()
     }
 
     override fun onServiceConnected() {
@@ -81,11 +84,13 @@ class BlockerService : AccessibilityService() {
     private fun reload() {
         words = Prefs.words(this)
         strict = Prefs.strict(this)
+        consent = Prefs.consent(this)
     }
 
     override fun onAccessibilityEvent(e: AccessibilityEvent?) {
         e ?: return
-        if (words.isEmpty() || overlay != null) return
+        // Foydalanuvchi rozilik bermagan bo'lsa, hech narsa o'qilmaydi.
+        if (!consent || words.isEmpty() || overlay != null) return
         val pkg = e.packageName?.toString() ?: return
         if (pkg == packageName || pkg == "com.android.systemui") return
 

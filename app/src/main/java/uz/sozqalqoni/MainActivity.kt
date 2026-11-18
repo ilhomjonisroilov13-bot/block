@@ -260,6 +260,62 @@ class MainActivity : Activity() {
         addView(c)
     })
 
+    /* ---------------- Ochiq ogohlantirish (rozilik) ---------------- */
+
+    private fun showConsent(openSettings: Boolean) = setScreen(page {
+        addView(tv("🔒", 48f, TEXT, top = 10, center = true))
+        addView(tv("Muhim: ruxsat haqida", 22f, TEXT, true, 6, true))
+        addView(tv("Davom etishdan oldin shuni diqqat bilan o'qing.", 13f, MUTED, top = 4, center = true))
+
+        val c = card(18, pad = 18)
+        fun block(title: String, text: String, top: Int) {
+            c.addView(tv(title, 14f, LINK, true, top))
+            c.addView(tv(text, 14f, TEXT, top = 4))
+        }
+        block(
+            "Qaysi ruxsat kerak?",
+            "Himoya ishlashi uchun \"So'z Qalqoni\" telefoningizning Qulaylik xizmati (Accessibility) ruxsatidan foydalanadi.",
+            0
+        )
+        block(
+            "Nima o'qiladi?",
+            "Faqat brauzerlar, Google va YouTube kabi qidiruv ilovalarida qidiruv maydoniga yozgan matningiz va brauzer manzil qatori. Parol maydonlari o'qilmaydi.",
+            14
+        )
+        block(
+            "Nima uchun?",
+            "Yozilgan matn siz ro'yxatga kiritgan so'zlardan biriga mos kelsa, ogohlantirish ko'rsatish va yozilgan matnni tozalash uchun.",
+            14
+        )
+        block(
+            "Ma'lumot bilan nima qilinadi?",
+            "Hech qayerga yuborilmaydi, saqlanmaydi va boshqalar bilan ulashilmaydi. Tekshiruv butunlay telefoningizning o'zida bajariladi. Faqat to'xtatilgan urinishlar soni saqlanadi.",
+            14
+        )
+        block(
+            "Nazorat sizda",
+            "Rozilikni Sozlamalar bo'limidan qaytarib olishingiz yoki xizmatni telefon sozlamalaridan (Qulaylik) istalgan vaqt o'chirishingiz mumkin.",
+            14
+        )
+        addView(c)
+
+        addView(btn("Qabul qilaman", top = 18) {
+            Prefs.setConsent(this@MainActivity, true)
+            if (openSettings) startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            showMain()
+        })
+        addView(btn("Rad etaman", Color.parseColor("#2A3150"), top = 10) {
+            Prefs.setConsent(this@MainActivity, false)
+            showMain()
+        })
+        addView(
+            tv(
+                "Rad etsangiz ham ilova ochiladi, lekin himoya ishlamaydi. Keyinroq Bosh sahifadan yoqishingiz mumkin.",
+                12f, MUTED, top = 10, center = true
+            )
+        )
+    })
+
     /* ---------------- Asosiy oyna ---------------- */
 
     private fun serviceEnabled(): Boolean {
@@ -272,6 +328,10 @@ class MainActivity : Activity() {
     }
 
     private fun showMain() {
+        if (!Prefs.consentAsked(this)) {
+            showConsent(false)
+            return
+        }
         root.removeAllViews()
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         body = FrameLayout(this).apply {
@@ -332,7 +392,7 @@ class MainActivity : Activity() {
     /* ---------------- 1. Bosh sahifa ---------------- */
 
     private fun homeTab(): ScrollView = page {
-        val on = serviceEnabled()
+        val on = serviceEnabled() && Prefs.consent(this@MainActivity)
         val hasWords = words.isNotEmpty()
 
         addView(tv("Salom! 👋", 24f, TEXT, true))
@@ -358,7 +418,11 @@ class MainActivity : Activity() {
         )
         if (!on) {
             st.addView(btn("Himoyani yoqish", top = 16) {
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                if (Prefs.consent(this@MainActivity)) {
+                    startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                } else {
+                    showConsent(true)
+                }
             })
             st.addView(
                 tv(
@@ -666,10 +730,33 @@ class MainActivity : Activity() {
         )
         addView(c3)
 
+        // Maxfiylik va rozilik
+        val c4 = card(14)
+        c4.addView(tv("🔒 Maxfiylik", 15f, TEXT, true))
+        c4.addView(
+            tv(
+                "Ilova qidiruv matnini faqat telefonning o'zida tekshiradi. Hech narsa yuborilmaydi va saqlanmaydi.",
+                13f, MUTED, top = 8
+            )
+        )
+        c4.addView(
+            tv(
+                if (Prefs.consent(this@MainActivity)) "Holat: roziligingiz berilgan ✅" else "Holat: rozilik berilmagan",
+                13f, if (Prefs.consent(this@MainActivity)) GREEN else RED, top = 8
+            )
+        )
+        if (Prefs.consent(this@MainActivity)) {
+            c4.addView(btn("Roziligimni qaytarib olish", Color.parseColor("#2A3150"), top = 12) {
+                Prefs.setConsent(this@MainActivity, false)
+                renderTab()
+            })
+        }
+        addView(c4)
+
         addView(btn("Chiqish", Color.parseColor("#2A3150"), top = 18) {
             loggedIn = false
             showLogin()
         })
-        addView(tv("So'z Qalqoni 2.0", 11f, Color.parseColor("#5C6890"), top = 14, center = true))
+        addView(tv("So'z Qalqoni 2.1", 11f, Color.parseColor("#5C6890"), top = 14, center = true))
     }
 }

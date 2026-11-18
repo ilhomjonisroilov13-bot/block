@@ -100,6 +100,16 @@ object Prefs {
         sp(c).edit().putString("words", JSONArray(list).toString()).apply()
     }
 
+    /* ---------- Foydalanuvchi roziligi (ochiq ogohlantirish) ---------- */
+
+    fun consentAsked(c: Context) = sp(c).getBoolean("consentAsked", false)
+
+    fun consent(c: Context) = sp(c).getBoolean("consent", false)
+
+    fun setConsent(c: Context, v: Boolean) {
+        sp(c).edit().putBoolean("consent", v).putBoolean("consentAsked", true).apply()
+    }
+
     fun strict(c: Context) = sp(c).getBoolean("strict", false)
 
     fun setStrict(c: Context, v: Boolean) {

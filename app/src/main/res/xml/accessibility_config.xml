@@ -5,4 +5,5 @@
     android:accessibilityFlags="flagReportViewIds|flagIncludeNotImportantViews"
     android:canRetrieveWindowContent="true"
     android:notificationTimeout="100"
+    android:packageNames="com.android.chrome,com.chrome.beta,com.chrome.dev,com.chrome.canary,org.mozilla.firefox,org.mozilla.fenix,org.mozilla.firefox_beta,com.sec.android.app.sbrowser,com.opera.browser,com.opera.mini.native,com.microsoft.emmx,com.brave.browser,com.duckduckgo.mobile.android,com.yandex.browser,com.kiwibrowser.browser,com.vivaldi.browser,com.UCMobile.intl,mark.via.gp,com.google.android.googlequicksearchbox,com.google.android.youtube,com.mi.globalbrowser,com.miui.browser,com.huawei.browser,com.android.browser,ru.yandex.searchplugin"
     android:description="@string/service_desc" />

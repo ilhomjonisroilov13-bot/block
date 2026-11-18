@@ -19,24 +19,61 @@ jobs:
       - uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.7
+
+      - name: Imzo kalitini tayyorlash (agar berilgan bo'lsa)
+        env:
+          SIGNING_BUNDLE: ${{ secrets.SIGNING_BUNDLE }}
+        run: |
+          if [ -n "$SIGNING_BUNDLE" ]; then
+            PASS="${SIGNING_BUNDLE%%:*}"
+            B64="${SIGNING_BUNDLE#*:}"
+            echo "$B64" | tr -d '\r\n ' | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "KEYSTORE_PASSWORD=$PASS" >> "$GITHUB_ENV"
+            echo "SIGNED=1" >> "$GITHUB_ENV"
+            echo "Imzo kaliti topildi: release APK imzolanadi."
+          else
+            echo "Imzo kaliti yo'q: debug APK yig'iladi."
+          fi
+
       - name: APK yig'ish
         run: |
           set +e
-          gradle assembleDebug --console=plain > build.log 2>&1
+          if [ "$SIGNED" = "1" ]; then
+            TASKS="assembleRelease bundleRelease"
+          else
+            TASKS="assembleDebug"
+          fi
+          gradle $TASKS --console=plain > build.log 2>&1
           code=$?
           if [ $code -ne 0 ]; then
             grep -E "^e: |What went wrong|error:" -A2 build.log | head -40 | while IFS= read -r l; do echo "::error::$l"; done
+            exit $code
           fi
-          exit $code
+          if [ "$SIGNED" = "1" ]; then
+            cp app/build/outputs/apk/release/app-release.apk app-final.apk
+          else
+            cp app/build/outputs/apk/debug/app-debug.apk app-final.apk
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: SozQalqoni-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app-final.apk
+
+      - name: AAB'ni saqlash (Play Market uchun)
+        if: env.SIGNED == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SozQalqoni-aab
+          path: app/build/outputs/bundle/release/app-release.aab
+
       - name: APK'ni Releases sahifasiga chiqarish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "apk-${{ github.run_number }}" \
-            app/build/outputs/apk/debug/app-debug.apk \
+          if [ "$SIGNED" = "1" ]; then NAME="app-release.apk"; NOTE="Imzolangan versiya"; else NAME="app-debug.apk"; NOTE="Sinov versiyasi"; fi
+          cp app-final.apk "$NAME"
+          gh release create "apk-${{ github.run_number }}" "$NAME" \
             --title "So'z Qalqoni APK (${{ github.run_number }})" \
-            --notes "Telefonga yuklab olib o'rnating: app-debug.apk"
+            --notes "$NOTE. Telefonga yuklab olib o'rnating: $NAME"
