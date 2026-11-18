@@ -154,7 +154,8 @@ class BlockerService : AccessibilityService() {
         lastShown = now
         try {
             val wm = getSystemService(WINDOW_SERVICE) as WindowManager
-            val v = buildOverlay(word)
+            val days = Prefs.cleanDays(this)
+            val v = buildOverlay(word, days)
             val params = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.MATCH_PARENT,
@@ -196,7 +197,7 @@ class BlockerService : AccessibilityService() {
         }, 1000)
     }
 
-    private fun buildOverlay(word: String): View {
+    private fun buildOverlay(word: String, days: Int): View {
         val d = resources.displayMetrics.density
         fun dp(v: Int) = (v * d).toInt()
         fun round(c: Int, r: Int) = GradientDrawable().apply {
@@ -245,10 +246,18 @@ class BlockerService : AccessibilityService() {
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply { topMargin = dp(12) }
         })
+        val tips = listOf(
+            "To'xtang va chuqur nafas oling. Bu istak bir necha daqiqada o'tib ketadi.",
+            "O'zingizga bergan va'dani eslang. Siz bundan kuchliroqsiz.",
+            "Hozir boshqa ishga o'ting: bir stakan suv iching yoki sayr qiling.",
+            "Telefonni qo'ying va 10 ta cho'kka tushing. Keyin o'zingizni yaxshi his qilasiz."
+        )
+        card.addView(label(tips.random(), 15f, Color.parseColor("#D7DEEF"), false, 14))
         card.addView(
             label(
-                "To'xtang va chuqur nafas oling. O'zingizga bergan va'dani eslang, boshqa foydali ish bilan band bo'ling.",
-                15f, Color.parseColor("#D7DEEF"), false, 14
+                if (days > 0) "🔥 $days kun toza yurgan edingiz. Yangi boshlash uchun hozir ajoyib payt!"
+                else "Har bir to'xtatilgan urinish sizni g'alabaga yaqinlashtiradi.",
+                13f, Color.parseColor("#8FB0FF"), false, 12
             )
         )
 

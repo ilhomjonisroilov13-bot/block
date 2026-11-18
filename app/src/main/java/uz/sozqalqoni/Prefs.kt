@@ -19,6 +19,7 @@ object Prefs {
     const val FILE = "sozqalqoni"
     private const val MAX_FAILS = 5
     private const val LOCK_MS = 60_000L
+    private const val DAY_MS = 86_400_000L
 
     private fun sp(c: Context): SharedPreferences =
         c.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -28,12 +29,14 @@ object Prefs {
         return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
     }
 
+    private fun newSalt(): ByteArray = ByteArray(16).also { SecureRandom().nextBytes(it) }
+
     fun hasUser(c: Context) = sp(c).contains("hash")
 
     fun email(c: Context): String = sp(c).getString("email", "") ?: ""
 
     fun register(c: Context, email: String, pass: String) {
-        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        val salt = newSalt()
         sp(c).edit()
             .putString("email", email)
             .putString("salt", Base64.encodeToString(salt, Base64.NO_WRAP))
@@ -42,7 +45,15 @@ object Prefs {
             .putBoolean("strict", false)
             .putInt("fails", 0)
             .putLong("lockUntil", 0)
+            .putLong("since", System.currentTimeMillis())
+            .putLong("lastBlock", 0)
             .apply()
+    }
+
+    private fun passwordMatches(s: SharedPreferences, pass: String): Boolean {
+        val salt = Base64.decode(s.getString("salt", "") ?: "", Base64.NO_WRAP)
+        val saved = Base64.decode(s.getString("hash", "") ?: "", Base64.NO_WRAP)
+        return MessageDigest.isEqual(hash(pass, salt), saved)
     }
 
     /** null = muvaffaqiyatli, aks holda xato matni. */
@@ -53,9 +64,7 @@ object Prefs {
         if (lock > now) {
             return "Juda ko'p urinish. ${(lock - now + 999) / 1000} soniyadan keyin urinib ko'ring."
         }
-        val salt = Base64.decode(s.getString("salt", "") ?: "", Base64.NO_WRAP)
-        val saved = Base64.decode(s.getString("hash", "") ?: "", Base64.NO_WRAP)
-        val ok = email == (s.getString("email", "") ?: "") && MessageDigest.isEqual(hash(pass, salt), saved)
+        val ok = email == (s.getString("email", "") ?: "") && passwordMatches(s, pass)
         if (ok) {
             s.edit().putInt("fails", 0).putLong("lockUntil", 0).apply()
             return null
@@ -68,6 +77,18 @@ object Prefs {
             s.edit().putInt("fails", nf).apply()
             "Elektron pochta yoki parol xato. Qolgan urinishlar: ${MAX_FAILS - nf}"
         }
+    }
+
+    /** null = muvaffaqiyatli, aks holda xato matni. */
+    fun changePassword(c: Context, old: String, new: String): String? {
+        val s = sp(c)
+        if (!passwordMatches(s, old)) return "Eski parol xato."
+        val salt = newSalt()
+        s.edit()
+            .putString("salt", Base64.encodeToString(salt, Base64.NO_WRAP))
+            .putString("hash", Base64.encodeToString(hash(new, salt), Base64.NO_WRAP))
+            .apply()
+        return null
     }
 
     fun words(c: Context): List<String> {
@@ -85,7 +106,7 @@ object Prefs {
         sp(c).edit().putBoolean("strict", v).apply()
     }
 
-    /* ---------- Statistika: nechta urinish to'xtatildi ---------- */
+    /* ---------- Statistika ---------- */
 
     private fun today(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
@@ -97,6 +118,7 @@ object Prefs {
             .putString("statDay", t)
             .putInt("statToday", todayCount + 1)
             .putInt("statTotal", s.getInt("statTotal", 0) + 1)
+            .putLong("lastBlock", System.currentTimeMillis())
             .apply()
     }
 
@@ -106,4 +128,17 @@ object Prefs {
     }
 
     fun totalCount(c: Context): Int = sp(c).getInt("statTotal", 0)
+
+    /** Oxirgi urinishdan (yoki ro'yxatdan o'tgandan) beri necha kun o'tdi. */
+    fun cleanDays(c: Context): Int {
+        val s = sp(c)
+        val now = System.currentTimeMillis()
+        var since = s.getLong("since", 0)
+        if (since == 0L) {
+            since = now
+            s.edit().putLong("since", now).apply()
+        }
+        val base = maxOf(since, s.getLong("lastBlock", 0))
+        return ((now - base) / DAY_MS).toInt().coerceAtLeast(0)
+    }
 }
