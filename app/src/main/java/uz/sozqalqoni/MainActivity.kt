@@ -8,6 +8,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.provider.Settings
@@ -17,6 +18,7 @@ import android.text.method.PasswordTransformationMethod
 import android.util.Patterns
 import android.view.Gravity
 import android.view.ViewGroup
+import android.view.WindowInsets
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -71,9 +73,23 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = BG
-        window.navigationBarColor = Color.parseColor("#0B1020")
         root = FrameLayout(this).apply { setBackgroundColor(BG) }
+        // Android 15+ da ilova to'liq ekranda chiziladi: tizim panellari va klaviatura uchun joy qoldiramiz.
+        root.setOnApplyWindowInsetsListener { v, insets ->
+            if (Build.VERSION.SDK_INT >= 30) {
+                val b = insets.getInsets(
+                    WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout() or WindowInsets.Type.ime()
+                )
+                v.setPadding(b.left, b.top, b.right, b.bottom)
+            } else {
+                @Suppress("DEPRECATION")
+                v.setPadding(
+                    insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
+                    insets.systemWindowInsetRight, insets.systemWindowInsetBottom
+                )
+            }
+            insets
+        }
         setContentView(root)
     }
 
@@ -757,6 +773,6 @@ class MainActivity : Activity() {
             loggedIn = false
             showLogin()
         })
-        addView(tv("So'z Qalqoni 2.1", 11f, Color.parseColor("#5C6890"), top = 14, center = true))
+        addView(tv("So'z Qalqoni 2.2", 11f, Color.parseColor("#5C6890"), top = 14, center = true))
     }
 }

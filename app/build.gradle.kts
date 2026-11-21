@@ -9,14 +9,14 @@ val ksPass: String? = System.getenv("KEYSTORE_PASSWORD")
 
 android {
     namespace = "uz.sozqalqoni"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "uz.sozqalqoni"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 3
-        versionName = "2.1"
+        targetSdk = 36
+        versionCode = 4
+        versionName = "2.2"
     }
 
     signingConfigs {
